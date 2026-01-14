@@ -1,0 +1,2085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RapidReport – Professional Inspection Reports</title>
+  <meta name="theme-color" content="#1a5a3c">
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Stripe JS -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--primary:#1a5a3c;--primary-light:#2a7a52;--primary-subtle:#e8f2ed;--text-primary:#1a1a1a;--text-secondary:#666;--text-tertiary:#999;--bg-primary:#fafbfa;--bg-card:#fff;--border:#e5e7e5;--border-light:#f0f1f0;--status-ok:#22863a;--status-warning:#d9840d;--status-critical:#cb2431;--status-ok-bg:#dcffe4;--status-warning-bg:#fff5e6;--status-critical-bg:#ffeef0;--font:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--radius:8px;--radius-lg:12px;--transition:0.15s ease}
+    html{font-size:16px}
+    body{font-family:var(--font);background:var(--bg-primary);color:var(--text-primary);line-height:1.5;min-height:100vh;-webkit-font-smoothing:antialiased}
+    
+    /* Auth Styles */
+    .auth-container{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .auth-card{width:100%;max-width:420px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem}
+    .auth-logo{display:flex;align-items:center;gap:0.5rem;margin-bottom:2rem;justify-content:center}
+    .auth-logo svg{color:var(--primary)}
+    .auth-logo span{font-size:1.25rem;font-weight:600}
+    .auth-title{font-size:1.5rem;font-weight:500;margin-bottom:0.5rem;text-align:center}
+    .auth-subtitle{color:var(--text-secondary);text-align:center;margin-bottom:1.5rem;font-size:0.9375rem}
+    
+    /* Form Styles */
+    .form-group{margin-bottom:1rem}
+    .form-label{display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.375rem}
+    .form-hint{font-size:0.8125rem;color:var(--text-tertiary);margin-top:0.25rem}
+    .form-input,.form-select{width:100%;padding:0.75rem 1rem;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:1rem;background:var(--bg-card);transition:border-color var(--transition)}
+    .form-input:focus,.form-select:focus{outline:none;border-color:var(--primary)}
+    .form-input::placeholder{color:var(--text-tertiary)}
+    .form-input:disabled{background:var(--bg-primary);cursor:not-allowed;opacity:0.7}
+    .form-error{color:var(--status-critical);font-size:0.8125rem;margin-top:0.5rem}
+    textarea.form-input{min-height:100px;resize:vertical}
+    
+    /* Button Styles */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem 1.25rem;border:none;border-radius:var(--radius);font-family:inherit;font-size:0.9375rem;font-weight:500;cursor:pointer;transition:all var(--transition);text-decoration:none}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-primary:hover:not(:disabled){background:var(--primary-light)}
+    .btn-primary:disabled{background:var(--text-tertiary);cursor:not-allowed;opacity:0.7}
+    .btn-secondary{background:transparent;color:var(--text-secondary);border:1px solid var(--border)}
+    .btn-secondary:hover:not(:disabled){border-color:var(--text-secondary);color:var(--text-primary)}
+    .btn-secondary:disabled{opacity:0.5;cursor:not-allowed}
+    .btn-ghost{background:transparent;color:var(--text-secondary);padding:0.5rem}
+    .btn-ghost:hover{color:var(--text-primary)}
+    .btn-link{background:none;border:none;color:var(--primary);padding:0;font-weight:500;cursor:pointer;font-size:0.875rem}
+    .btn-link:hover{text-decoration:underline}
+    .btn-full{width:100%}
+    .btn-sm{padding:0.5rem 0.875rem;font-size:0.875rem}
+    .btn-danger{color:var(--status-critical)}
+    .btn-danger:hover{background:var(--status-critical-bg)}
+    .btn-social{background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);width:100%;margin-bottom:0.75rem}
+    .btn-social:hover{background:var(--bg-primary)}
+    .btn-social svg{width:20px;height:20px}
+    
+    /* Divider */
+    .divider{display:flex;align-items:center;text-align:center;margin:1.5rem 0;color:var(--text-tertiary);font-size:0.8125rem}
+    .divider::before,.divider::after{content:'';flex:1;border-bottom:1px solid var(--border)}
+    .divider::before{margin-right:1rem}
+    .divider::after{margin-left:1rem}
+    
+    /* Spinner */
+    .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite}
+    .spinner-dark{border-color:var(--border);border-top-color:var(--primary)}
+    .spinner-lg{width:32px;height:32px;border-width:3px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    
+    /* Toast */
+    .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--text-primary);color:#fff;padding:1rem 1.5rem;border-radius:var(--radius);font-size:0.9375rem;font-weight:500;z-index:1100;animation:slideUp 0.3s ease;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+    .toast.success{background:var(--status-ok)}
+    .toast.error{background:var(--status-critical)}
+    .toast.warning{background:var(--status-warning)}
+    @keyframes slideUp{from{opacity:0;transform:translate(-50%,20px)}to{opacity:1;transform:translate(-50%,0)}}
+    
+    /* Subscription Banner */
+    .subscription-banner{background:var(--status-warning-bg);border:1px solid var(--status-warning);border-radius:var(--radius);padding:1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .subscription-banner.error{background:var(--status-critical-bg);border-color:var(--status-critical)}
+    .subscription-banner-content{flex:1;min-width:200px}
+    .subscription-banner-title{font-weight:500;margin-bottom:0.25rem}
+    .subscription-banner-text{font-size:0.875rem;color:var(--text-secondary)}
+    
+    /* Subscribe Page */
+    .subscription-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .subscription-card{width:100%;max-width:480px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2.5rem;text-align:center}
+    .subscription-card h1{font-size:1.5rem;margin-bottom:0.5rem}
+    .subscription-card>p{color:var(--text-secondary);margin-bottom:2rem}
+    .price-display{font-size:2.5rem;font-weight:600;color:var(--primary);margin-bottom:0.5rem}
+    .price-period{font-size:1rem;color:var(--text-secondary);margin-bottom:2rem}
+    .feature-list{text-align:left;margin-bottom:2rem}
+    .feature-item{display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;color:var(--text-secondary)}
+    .feature-item svg{color:var(--status-ok);flex-shrink:0}
+    .trial-badge{display:inline-block;background:var(--status-ok-bg);color:var(--status-ok);padding:0.25rem 0.75rem;border-radius:100px;font-size:0.8125rem;font-weight:500;margin-bottom:1.5rem}
+    
+    /* Layout */
+    .sidebar{width:240px;background:var(--bg-card);border-right:1px solid var(--border);padding:1.5rem 1rem;position:fixed;height:100vh;display:flex;flex-direction:column}
+    .sidebar-logo{display:flex;align-items:center;gap:0.5rem;padding:0 0.75rem;margin-bottom:2rem}
+    .sidebar-logo svg{color:var(--primary)}
+    .sidebar-logo span{font-size:1.125rem;font-weight:600}
+    .sidebar-nav{flex:1}
+    .nav-item{display:flex;align-items:center;gap:0.75rem;padding:0.625rem 0.75rem;border-radius:var(--radius);color:var(--text-secondary);font-size:0.9375rem;transition:all var(--transition);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+    .nav-item:hover{color:var(--text-primary);background:var(--bg-primary)}
+    .nav-item.active{color:var(--primary);background:var(--primary-subtle)}
+    .nav-item svg{width:20px;height:20px;flex-shrink:0}
+    .sidebar-footer{border-top:1px solid var(--border);padding-top:1rem;margin-top:1rem}
+    .user-info{display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.75rem}
+    .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--primary-subtle);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:500;font-size:0.875rem}
+    .user-name{font-size:0.875rem;font-weight:500}
+    .user-email{font-size:0.75rem;color:var(--text-tertiary)}
+    .main-content{flex:1;margin-left:240px;padding:2rem;max-width:1200px}
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+    .page-title{font-size:1.5rem;font-weight:500}
+    .page-subtitle{color:var(--text-secondary);font-size:0.9375rem;margin-top:0.25rem}
+    
+    /* Card */
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+    .card-title{font-size:1.125rem;font-weight:500}
+    
+    /* Reports List */
+    .report-list{display:flex;flex-direction:column}
+    .report-item{display:flex;align-items:center;padding:0.875rem 1rem;border-bottom:1px solid var(--border-light);transition:background var(--transition);cursor:pointer}
+    .report-item:hover{background:var(--bg-primary)}
+    .report-item:last-child{border-bottom:none}
+    .report-info{flex:1;min-width:0}
+    .report-title{font-weight:500;font-size:0.9375rem;margin-bottom:0.125rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .report-meta{font-size:0.8125rem;color:var(--text-tertiary)}
+    .report-status{font-size:0.75rem;padding:0.25rem 0.625rem;border-radius:100px;font-weight:500;margin-left:1rem;flex-shrink:0}
+    .report-status.draft{background:var(--bg-primary);color:var(--text-secondary)}
+    .report-status.completed{background:var(--status-ok-bg);color:var(--status-ok)}
+    .report-actions{display:flex;gap:0.25rem;margin-left:0.75rem}
+    
+    /* Templates Grid */
+    .templates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+    .template-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;cursor:pointer;transition:all var(--transition)}
+    .template-card:hover{border-color:var(--primary)}
+    .template-name{font-weight:500;margin-bottom:0.25rem}
+    .template-description{font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem}
+    .template-meta{font-size:0.8125rem;color:var(--text-tertiary)}
+    
+    /* Control Points */
+    .control-point{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem}
+    .control-point-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem}
+    .control-point-section{margin-bottom:1rem}
+    .control-point-label{font-size:0.8125rem;color:var(--text-secondary);margin-bottom:0.5rem}
+    
+    /* Status Pills */
+    .status-pills{display:flex;gap:0.5rem;flex-wrap:wrap}
+    .status-pill{padding:0.375rem 0.75rem;border-radius:100px;font-size:0.8125rem;font-weight:500;cursor:pointer;transition:all var(--transition);border:2px solid transparent;background:var(--bg-primary);color:var(--text-secondary)}
+    .status-pill:hover{border-color:var(--border)}
+    .status-pill.active{border-color:currentColor}
+    .status-pill[data-color="green"]{background:var(--status-ok-bg);color:var(--status-ok)}
+    .status-pill[data-color="orange"]{background:var(--status-warning-bg);color:var(--status-warning)}
+    .status-pill[data-color="red"]{background:var(--status-critical-bg);color:var(--status-critical)}
+    
+    /* Photos */
+    .photos-grid{display:flex;gap:0.75rem;flex-wrap:wrap}
+    .photo-card{width:80px;height:80px;border-radius:var(--radius);overflow:hidden;position:relative;background:var(--bg-primary);border:1px solid var(--border);flex-shrink:0}
+    .photo-card img{width:100%;height:100%;object-fit:cover}
+    .photo-actions{position:absolute;bottom:0;left:0;right:0;display:flex;background:rgba(0,0,0,0.7)}
+    .photo-action-btn{flex:1;padding:0.25rem;border:none;background:transparent;color:#fff;font-size:0.625rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.125rem}
+    .photo-action-btn:first-child{border-right:1px solid rgba(255,255,255,0.2)}
+    .photo-action-btn svg{width:12px;height:12px}
+    .photo-add{width:80px;height:80px;border:1px dashed var(--border);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-tertiary);cursor:pointer;transition:all var(--transition);font-size:0.75rem;text-align:center;flex-shrink:0}
+    .photo-add:hover{border-color:var(--primary);color:var(--primary)}
+    .photo-add.disabled{opacity:0.5;cursor:not-allowed;pointer-events:none}
+    .photo-add svg{width:20px;height:20px;margin-bottom:0.25rem}
+    
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:1000}
+    .modal{background:var(--bg-card);border-radius:var(--radius-lg);width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+    .modal-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .modal-title{font-size:1.125rem;font-weight:500}
+    .modal-body{padding:1.5rem}
+    .modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:0.75rem}
+    
+    /* Photo Choice Modal (Mobile) */
+    .photo-choice-modal{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:1rem;z-index:1001;animation:slideUpModal 0.2s ease}
+    @keyframes slideUpModal{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .photo-choice-option{display:flex;align-items:center;gap:1rem;padding:1rem;border-radius:var(--radius);cursor:pointer;transition:background var(--transition)}
+    .photo-choice-option:hover{background:var(--bg-primary)}
+    .photo-choice-option svg{width:24px;height:24px;color:var(--primary)}
+    .photo-choice-cancel{width:100%;padding:1rem;margin-top:0.5rem;border:1px solid var(--border);border-radius:var(--radius);background:transparent;font-family:inherit;font-size:1rem;cursor:pointer}
+    
+    /* Sticky Actions */
+    .sticky-actions{position:fixed;bottom:0;left:240px;right:0;background:var(--bg-card);border-top:1px solid var(--border);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;z-index:100}
+    
+    /* Empty State */
+    .empty-state{text-align:center;padding:3rem 2rem;color:var(--text-secondary)}
+    .empty-state svg{width:48px;height:48px;margin-bottom:1rem;opacity:0.5}
+    .empty-state p{margin-bottom:1rem}
+    
+    /* Loading Screen */
+    .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem}
+    
+    /* Filters */
+    .filters-bar{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap}
+    .filters-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:1rem}
+    .filters-row{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end}
+    .filter-group{flex:1;min-width:150px}
+    .filter-group label{display:block;font-size:0.8125rem;color:var(--text-secondary);margin-bottom:0.25rem}
+    .filter-group input,.filter-group select{width:100%;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius);font-size:0.875rem;font-family:inherit}
+    
+    /* Settings */
+    .settings-section{margin-bottom:2rem}
+    .settings-section-title{font-size:1rem;font-weight:500;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border)}
+    .lang-selector{display:flex;gap:0.5rem;flex-wrap:wrap}
+    .lang-option{padding:0.5rem 1rem;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all var(--transition);font-size:0.875rem}
+    .lang-option:hover{border-color:var(--primary)}
+    .lang-option.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    
+    /* Logo Upload */
+    .logo-upload{width:120px;height:120px;border:1px dashed var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg-primary)}
+    .logo-upload:hover{border-color:var(--primary)}
+    .logo-upload img{width:100%;height:100%;object-fit:contain}
+    .logo-upload-placeholder{text-align:center;color:var(--text-tertiary)}
+    .logo-upload-placeholder svg{margin-bottom:0.5rem}
+    
+    /* Subscription Status */
+    .subscription-status-display{display:flex;flex-direction:column;gap:0.5rem}
+    .subscription-status-badge{display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem;border-radius:var(--radius);font-weight:500;font-size:0.9375rem}
+    .subscription-status-badge.status-trial{background:#e0f2fe;color:#0369a1}
+    .subscription-status-badge.status-active{background:var(--status-ok-bg);color:var(--status-ok)}
+    .subscription-status-badge.status-warning{background:var(--status-warning-bg);color:var(--status-warning)}
+    .subscription-status-badge.status-error{background:var(--status-critical-bg);color:var(--status-critical)}
+    .subscription-status-badge.status-inactive{background:var(--bg-primary);color:var(--text-secondary)}
+    .subscription-status-details{font-size:0.875rem;color:var(--text-secondary)}
+    
+    /* Danger Zone */
+    .danger-title{color:var(--status-critical)}
+    .danger-card{border-color:var(--status-critical);background:var(--status-critical-bg)}
+    .btn-danger-solid{background:var(--status-critical);color:#fff;border:none}
+    .btn-danger-solid:hover{background:#a61d29}
+    
+    /* Form Row */
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    
+    /* Section Editor */
+    .section-editor{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem}
+    .section-title-input{font-size:1rem;font-weight:500;border:none;background:transparent;width:100%;margin-bottom:0.75rem;font-family:inherit}
+    .section-title-input:focus{outline:none}
+    .section-char-count{font-size:0.75rem;color:var(--text-tertiary);text-align:right;margin-top:0.5rem}
+    
+    /* Report Editor Header */
+    .report-editor-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:1rem}
+    .report-editor-title input{font-size:1.5rem;font-weight:500;border:none;background:transparent;width:100%;font-family:inherit}
+    .report-editor-title input:focus{outline:none}
+    .report-editor-actions{display:flex;gap:0.5rem}
+    
+    /* Utilities */
+    .text-center{text-align:center}.text-muted{color:var(--text-secondary)}.text-sm{font-size:0.875rem}
+    .mt-1{margin-top:0.5rem}.mt-2{margin-top:1rem}.mt-3{margin-top:1.5rem}.mb-1{margin-bottom:0.5rem}.mb-2{margin-bottom:1rem}
+    .flex{display:flex}.gap-1{gap:0.5rem}.gap-2{gap:1rem}.items-center{align-items:center}.justify-between{justify-content:space-between}
+    input[type="file"]{display:none}
+    .hidden{display:none!important}
+    
+    /* Responsive */
+    @media(max-width:768px){
+      .sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;height:auto;flex-direction:row;padding:0.5rem;border-right:none;border-top:1px solid var(--border);z-index:100}
+      .sidebar-logo,.sidebar-footer,.nav-item span{display:none}
+      .sidebar-nav{display:flex;justify-content:space-around;width:100%}
+      .nav-item{flex-direction:column;padding:0.5rem;gap:0.25rem;font-size:0.75rem}
+      .main-content{margin-left:0;margin-bottom:70px;padding:1rem}
+      .sticky-actions{left:0;bottom:70px;padding:1rem}
+      .form-row{grid-template-columns:1fr}
+      .page-header{flex-direction:column;align-items:flex-start}
+      .report-editor-header{flex-direction:column;align-items:flex-start}
+      .report-editor-title{width:100%}
+      .filters-row{flex-direction:column}
+      .filter-group{min-width:100%}
+      .templates-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="loading-screen">
+      <div class="spinner spinner-dark spinner-lg"></div>
+      <p class="text-muted">Loading RapidReport...</p>
+    </div>
+  </div>
+
+  <script type="module">
+    const { jsPDF } = window.jspdf;
+
+    // ============================================
+    // ICONS (defined first for error pages)
+    // ============================================
+    const icons = {
+      logo: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M7 8h14M7 12h10M7 16h12M7 20h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+      google: `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>`,
+      apple: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>`,
+      reports: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+      templates: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>`,
+      company: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>`,
+      settings: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+      billing: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+      logout: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
+      plus: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+      check: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`,
+      warning: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      trash: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
+      copy: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+      download: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+      mail: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
+      back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
+      image: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`,
+      camera: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+      gallery: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`,
+      x: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+      filter: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`,
+      refresh: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>`,
+      file: `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
+    };
+
+    // ============================================
+    // CONFIGURATION - REPLACE WITH YOUR VALUES
+    // ============================================
+    const CONFIG = {
+      SUPABASE_URL: 'YOUR_SUPABASE_URL',
+      SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+      API_URL: 'YOUR_API_URL',
+      STRIPE_PUBLISHABLE_KEY: 'YOUR_STRIPE_PUBLISHABLE_KEY'
+    };
+
+    // ============================================
+    // CONFIGURATION VALIDATION
+    // ============================================
+    function isConfigValid() {
+      return CONFIG.SUPABASE_URL && 
+             !CONFIG.SUPABASE_URL.includes('YOUR_') &&
+             CONFIG.SUPABASE_ANON_KEY && 
+             !CONFIG.SUPABASE_ANON_KEY.includes('YOUR_') &&
+             CONFIG.API_URL &&
+             !CONFIG.API_URL.includes('YOUR_') &&
+             CONFIG.STRIPE_PUBLISHABLE_KEY &&
+             !CONFIG.STRIPE_PUBLISHABLE_KEY.includes('YOUR_');
+    }
+
+    function renderConfigError() {
+      const logoSvg = '<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="2" y="2" width="24" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M7 8h14M7 12h10M7 16h12M7 20h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+      return `
+        <div class="auth-container">
+          <div class="auth-card" style="max-width:560px;">
+            <div class="auth-logo">${logoSvg}<span>RapidReport</span></div>
+            <h1 class="auth-title" style="color:var(--status-critical);">⚠️ Configuration Required</h1>
+            <p class="auth-subtitle">The application is deployed but not yet configured.</p>
+            
+            <div style="background:var(--bg-primary);border-radius:var(--radius);padding:1.25rem;margin:1.5rem 0;text-align:left;">
+              <p style="font-weight:500;margin-bottom:0.75rem;">Missing configuration values:</p>
+              <ul style="color:var(--text-secondary);font-size:0.875rem;padding-left:1.25rem;">
+                ${CONFIG.SUPABASE_URL.includes('YOUR_') ? '<li>SUPABASE_URL</li>' : ''}
+                ${CONFIG.SUPABASE_ANON_KEY.includes('YOUR_') ? '<li>SUPABASE_ANON_KEY</li>' : ''}
+                ${CONFIG.API_URL.includes('YOUR_') ? '<li>API_URL</li>' : ''}
+                ${CONFIG.STRIPE_PUBLISHABLE_KEY.includes('YOUR_') ? '<li>STRIPE_PUBLISHABLE_KEY</li>' : ''}
+              </ul>
+            </div>
+
+            <div style="background:var(--status-warning-bg);border-radius:var(--radius);padding:1rem;margin-bottom:1.5rem;text-align:left;">
+              <p style="font-weight:500;color:var(--status-warning);margin-bottom:0.5rem;">How to fix:</p>
+              <ol style="color:var(--text-secondary);font-size:0.875rem;padding-left:1.25rem;line-height:1.8;">
+                <li>Open <code>index.html</code></li>
+                <li>Find the <code>CONFIG</code> object (line ~297)</li>
+                <li>Replace placeholder values with your actual credentials</li>
+                <li>Redeploy to Netlify</li>
+              </ol>
+            </div>
+
+            <div style="text-align:left;font-size:0.8125rem;color:var(--text-tertiary);">
+              <p style="margin-bottom:0.5rem;"><strong>Need help setting up?</strong></p>
+              <p>• Get Supabase credentials: <a href="https://supabase.com" target="_blank" style="color:var(--primary);">supabase.com</a> → Project Settings → API</p>
+              <p>• Get Stripe key: <a href="https://stripe.com" target="_blank" style="color:var(--primary);">stripe.com</a> → Developers → API Keys</p>
+              <p>• API URL is your backend server (Railway, Render, etc.)</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Check config before initializing
+    if (!isConfigValid()) {
+      // Show config error page
+      document.getElementById('app').innerHTML = renderConfigError();
+    } else {
+      // Initialize Supabase and Stripe only if config is valid
+      initializeApp();
+    }
+
+    // Wrap initialization in a function
+    async function initializeApp() {
+      let supabase, stripe;
+      
+      try {
+        // Initialize Supabase
+        supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        
+        // Initialize Stripe
+        stripe = Stripe(CONFIG.STRIPE_PUBLISHABLE_KEY);
+        
+        // Make them available globally
+        window.supabaseClient = supabase;
+        window.stripeClient = stripe;
+      } catch (err) {
+        console.error('Initialization error:', err);
+        document.getElementById('app').innerHTML = `
+          <div class="auth-container">
+            <div class="auth-card">
+              <h1 class="auth-title" style="color:var(--status-critical);">Initialization Error</h1>
+              <p class="text-muted">Failed to initialize: ${err.message}</p>
+              <p class="text-muted mt-2">Please check your configuration values.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+    // ============================================
+    // TRANSLATIONS
+    // ============================================
+    const translations = {
+      en: {
+        welcomeBack: 'Welcome back', signInContinue: 'Sign in to continue', createAccount: 'Create account',
+        startTrial: 'Start your 7-day free trial', fullName: 'Full Name', email: 'Email', password: 'Password',
+        signIn: 'Sign In', signOut: 'Sign Out', dontHaveAccount: "Don't have an account?", createOne: 'Create one',
+        alreadyHaveAccount: 'Already have an account?', forgotPassword: 'Forgot password?', resetPassword: 'Reset password',
+        sendResetLink: 'Send Reset Link', backToSignIn: 'Back to sign in', checkEmail: 'Check your email for the reset link',
+        continueWithGoogle: 'Continue with Google', continueWithApple: 'Continue with Apple', orContinueWithEmail: 'or continue with email',
+        myReports: 'My Reports', templates: 'Templates', company: 'Company', settings: 'Settings', billing: 'Billing',
+        newReport: 'New Report', noReportsYet: 'No reports yet', createFirstReport: 'Create your first inspection report',
+        subscribeToCreate: 'Subscribe to start creating reports', chooseTemplate: 'Choose a template',
+        draft: 'Draft', completed: 'Completed', duplicate: 'Duplicate', delete: 'Delete',
+        reportTitle: 'Report Title', clientName: 'Client Name', location: 'Location',
+        inspectionPoints: 'Inspection Points', controlPointTitle: 'Control point title',
+        status: 'Status', observations: 'Observations', photos: 'Photos', addPhoto: 'Add',
+        takePhoto: 'Take a photo', chooseFromLibrary: 'Choose from library', cancel: 'Cancel',
+        replace: 'Replace', maxPhotos: 'Max 4 photos per point', addControlPoint: 'Add Control Point',
+        saveDraft: 'Save', markComplete: 'Complete', lastSaved: 'Last saved',
+        reportSaved: '✓ Report saved', reportCompleted: '✓ Report completed',
+        generatePDF: 'Generate PDF', sendByEmail: 'Send by email', generatingPDF: 'Generating PDF...',
+        pdfSuccess: 'PDF downloaded', pdfError: 'PDF generation failed',
+        trialEnded: 'Trial Ended', subscriptionEnded: 'Subscription Ended', paymentFailed: 'Payment Failed',
+        trialEndedDesc: 'Your 7-day trial has ended. Subscribe to continue using RapidReport.',
+        subscriptionEndedDesc: 'Your subscription has been canceled. Subscribe again to continue.',
+        paymentFailedDesc: 'Please update your payment method to continue using RapidReport.',
+        startFreeTrial: 'Start Free Trial', subscribeNow: 'Subscribe Now', updatePayment: 'Update Payment Method',
+        perMonth: 'per month after trial', trialBadge: '7 days free', cancelAnytime: 'Cancel anytime. No commitment required.',
+        feature1: 'Unlimited inspection reports', feature2: 'Professional PDF generation',
+        feature3: 'Photo documentation (4 per point)', feature4: '6 professional templates',
+        feature5: 'Company branding', feature6: 'Multi-language support',
+        trialEndingSoon: 'Trial ending soon', daysLeft: 'days left in your trial',
+        manageBilling: 'Manage Billing', subscriptionEnding: 'Subscription ending',
+        subscriptionEndingOn: 'Your subscription will end on', reactivate: 'Reactivate',
+        companyProfile: 'Company Profile', companyHint: 'This information appears on your reports',
+        companyName: 'Company Name', address: 'Address', phone: 'Phone', website: 'Website',
+        uploadLogo: 'Upload logo', saveCompany: 'Save', companySaved: '✓ Saved',
+        language: 'Language', languageHint: 'Select interface and PDF language',
+        good: 'Good', fair: 'Fair', poor: 'Poor', pass: 'Pass', needsAttention: 'Needs Attention', fail: 'Fail',
+        compliant: 'Compliant', minorIssue: 'Minor Issue', violation: 'Violation',
+        safe: 'Safe', caution: 'Caution', hazard: 'Hazard',
+        excellent: 'Excellent', acceptable: 'Acceptable', unacceptable: 'Unacceptable',
+        operational: 'Operational', serviceDue: 'Service Due', outOfService: 'Out of Service',
+        generatedBy: 'Generated by RapidReport', page: 'Page', of: 'of',
+        reports: 'report', reportsPlural: 'reports', controlPoints: 'control points', statuses: 'statuses',
+        subscriptionStatus: 'Subscription Status', trialActive: 'Trial Active', daysRemaining: 'days remaining',
+        trialEndsOn: 'Trial ends on', subscriptionActive: 'Subscription Active', subscriptionCanceled: 'Canceling',
+        accessUntil: 'Access until', nextBilling: 'Next billing', month: 'month', paymentIssue: 'Payment Issue',
+        updatePaymentRequired: 'Please update your payment method', subscriptionInactive: 'Subscription Inactive',
+        subscribeToAccess: 'Subscribe to access all features', noSubscription: 'No Subscription',
+        startTrialToAccess: 'Start your free trial to access all features',
+        account: 'Account', dangerZone: 'Danger Zone', deleteAccount: 'Delete Account',
+        deleteAccountWarning: 'Permanently delete your account and all data. This action cannot be undone. Your subscription will be canceled.',
+        deleteAccountConfirm: 'Are you sure you want to delete your account? All your reports and data will be permanently deleted.',
+        deleteAccountFinal: 'This is your final warning. Type DELETE to confirm account deletion. This cannot be undone.',
+        accountDeleted: 'Account deleted successfully', deleteAccountError: 'Failed to delete account'
+      },
+      fr: {
+        welcomeBack: 'Bon retour', signInContinue: 'Connectez-vous pour continuer', createAccount: 'Créer un compte',
+        startTrial: 'Essai gratuit de 7 jours', fullName: 'Nom complet', email: 'Email', password: 'Mot de passe',
+        signIn: 'Se connecter', signOut: 'Déconnexion', dontHaveAccount: 'Pas de compte ?', createOne: 'Créer',
+        alreadyHaveAccount: 'Déjà un compte ?', forgotPassword: 'Mot de passe oublié ?', resetPassword: 'Réinitialiser',
+        sendResetLink: 'Envoyer le lien', backToSignIn: 'Retour à la connexion', checkEmail: 'Vérifiez votre email',
+        continueWithGoogle: 'Continuer avec Google', continueWithApple: 'Continuer avec Apple', orContinueWithEmail: 'ou par email',
+        myReports: 'Mes Rapports', templates: 'Modèles', company: 'Entreprise', settings: 'Paramètres', billing: 'Facturation',
+        newReport: 'Nouveau Rapport', noReportsYet: 'Aucun rapport', createFirstReport: 'Créez votre premier rapport',
+        subscribeToCreate: 'Abonnez-vous pour créer des rapports', chooseTemplate: 'Choisissez un modèle',
+        draft: 'Brouillon', completed: 'Terminé', duplicate: 'Dupliquer', delete: 'Supprimer',
+        reportTitle: 'Titre du rapport', clientName: 'Nom du client', location: 'Lieu',
+        inspectionPoints: 'Points de contrôle', controlPointTitle: 'Titre du point',
+        status: 'Statut', observations: 'Observations', photos: 'Photos', addPhoto: 'Ajouter',
+        takePhoto: 'Prendre une photo', chooseFromLibrary: 'Choisir dans la galerie', cancel: 'Annuler',
+        replace: 'Remplacer', maxPhotos: 'Max 4 photos par point', addControlPoint: 'Ajouter un point',
+        saveDraft: 'Enregistrer', markComplete: 'Terminer', lastSaved: 'Sauvegardé',
+        reportSaved: '✓ Rapport enregistré', reportCompleted: '✓ Rapport terminé',
+        generatePDF: 'Générer PDF', sendByEmail: 'Envoyer par email', generatingPDF: 'Génération du PDF...',
+        pdfSuccess: 'PDF téléchargé', pdfError: 'Échec de génération',
+        trialEnded: 'Essai terminé', subscriptionEnded: 'Abonnement terminé', paymentFailed: 'Paiement échoué',
+        trialEndedDesc: 'Votre essai de 7 jours est terminé. Abonnez-vous pour continuer.',
+        subscriptionEndedDesc: 'Votre abonnement a été annulé. Réabonnez-vous pour continuer.',
+        paymentFailedDesc: 'Veuillez mettre à jour votre moyen de paiement.',
+        startFreeTrial: 'Commencer l\'essai', subscribeNow: 'S\'abonner', updatePayment: 'Mettre à jour le paiement',
+        perMonth: 'par mois après l\'essai', trialBadge: '7 jours gratuits', cancelAnytime: 'Annulez à tout moment.',
+        feature1: 'Rapports illimités', feature2: 'Génération PDF professionnelle',
+        feature3: 'Photos (4 par point)', feature4: '6 modèles professionnels',
+        feature5: 'Branding entreprise', feature6: 'Support multilingue',
+        trialEndingSoon: 'Essai bientôt terminé', daysLeft: 'jours restants',
+        manageBilling: 'Gérer la facturation', subscriptionEnding: 'Fin d\'abonnement',
+        subscriptionEndingOn: 'Votre abonnement se termine le', reactivate: 'Réactiver',
+        companyProfile: 'Profil entreprise', companyHint: 'Ces informations apparaissent sur vos rapports',
+        companyName: 'Nom', address: 'Adresse', phone: 'Téléphone', website: 'Site web',
+        uploadLogo: 'Logo', saveCompany: 'Enregistrer', companySaved: '✓ Enregistré',
+        language: 'Langue', languageHint: 'Langue de l\'interface et des PDF',
+        good: 'Bon', fair: 'Correct', poor: 'Mauvais', pass: 'Conforme', needsAttention: 'À surveiller', fail: 'Non conforme',
+        compliant: 'Conforme', minorIssue: 'Problème mineur', violation: 'Violation',
+        safe: 'Sûr', caution: 'Attention', hazard: 'Danger',
+        excellent: 'Excellent', acceptable: 'Acceptable', unacceptable: 'Inacceptable',
+        operational: 'Opérationnel', serviceDue: 'Maintenance', outOfService: 'Hors service',
+        generatedBy: 'Généré par RapidReport', page: 'Page', of: 'sur',
+        reports: 'rapport', reportsPlural: 'rapports', controlPoints: 'points', statuses: 'statuts',
+        subscriptionStatus: 'Statut de l\'abonnement', trialActive: 'Essai en cours', daysRemaining: 'jours restants',
+        trialEndsOn: 'L\'essai se termine le', subscriptionActive: 'Abonnement actif', subscriptionCanceled: 'Annulation prévue',
+        accessUntil: 'Accès jusqu\'au', nextBilling: 'Prochaine facturation', month: 'mois', paymentIssue: 'Problème de paiement',
+        updatePaymentRequired: 'Veuillez mettre à jour votre moyen de paiement', subscriptionInactive: 'Abonnement inactif',
+        subscribeToAccess: 'Abonnez-vous pour accéder à toutes les fonctionnalités', noSubscription: 'Pas d\'abonnement',
+        startTrialToAccess: 'Commencez votre essai gratuit pour accéder à toutes les fonctionnalités',
+        account: 'Compte', dangerZone: 'Zone de danger', deleteAccount: 'Supprimer le compte',
+        deleteAccountWarning: 'Supprimez définitivement votre compte et toutes vos données. Cette action est irréversible. Votre abonnement sera annulé.',
+        deleteAccountConfirm: 'Êtes-vous sûr de vouloir supprimer votre compte ? Tous vos rapports et données seront définitivement supprimés.',
+        deleteAccountFinal: 'Dernier avertissement. Cette action est définitive et irréversible.',
+        accountDeleted: 'Compte supprimé avec succès', deleteAccountError: 'Échec de la suppression du compte'
+      }
+    };
+
+    // ============================================
+    // STATE
+    // ============================================
+    let state = {
+      // Auth
+      user: null,
+      session: null,
+      profile: null,
+      subscription: null,
+      authLoading: false,
+      authError: null,
+      
+      // App
+      loading: true,
+      currentView: 'loading',
+      language: 'en',
+      
+      // Data
+      company: null,
+      templates: [],
+      reports: [],
+      currentReport: null,
+      
+      // UI
+      toast: null,
+      photoModal: null,
+      emailModal: null,
+      showFilters: false,
+      filters: { dateFrom: '', dateTo: '', status: '', templateId: '' },
+      saving: false,
+      completing: false
+    };
+
+    // ============================================
+    // UTILITIES
+    // ============================================
+    function t(key) {
+      return translations[state.language]?.[key] || translations['en'][key] || key;
+    }
+
+    function showToast(message, type = 'info') {
+      state.toast = { message, type };
+      render();
+      setTimeout(() => { state.toast = null; render(); }, 4000);
+    }
+
+    function getInitials(name) {
+      if (!name) return 'U';
+      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function formatDate(date) {
+      const lang = state.language === 'fr' ? 'fr-FR' : 'en-US';
+      return new Date(date).toLocaleDateString(lang, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function daysUntil(date) {
+      const now = new Date();
+      const target = new Date(date);
+      return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+    }
+
+    function generateId(prefix = 'id') {
+      return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    function isMobile() {
+      return /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    function hasActiveSubscription() {
+      return state.subscription?.hasAccess === true;
+    }
+
+    // ============================================
+    // DEFAULT TEMPLATES
+    // ============================================
+    const defaultTemplates = [
+      { id: 'tpl_realestate', name: 'Real Estate Inspection', description: 'Property condition assessment', statuses: [{ id: 'good', label: 'Good', color: 'green' }, { id: 'fair', label: 'Fair', color: 'orange' }, { id: 'poor', label: 'Poor', color: 'red' }], controlPoints: [{ id: 'cp1', title: 'Roof' }, { id: 'cp2', title: 'Foundation' }, { id: 'cp3', title: 'Electrical' }, { id: 'cp4', title: 'Plumbing' }, { id: 'cp5', title: 'HVAC' }, { id: 'cp6', title: 'Windows' }] },
+      { id: 'tpl_vehicle', name: 'Vehicle Inspection', description: 'Pre-purchase or maintenance report', statuses: [{ id: 'pass', label: 'Pass', color: 'green' }, { id: 'attention', label: 'Needs Attention', color: 'orange' }, { id: 'fail', label: 'Fail', color: 'red' }], controlPoints: [{ id: 'cp1', title: 'Engine' }, { id: 'cp2', title: 'Transmission' }, { id: 'cp3', title: 'Brakes' }, { id: 'cp4', title: 'Suspension' }, { id: 'cp5', title: 'Tires' }, { id: 'cp6', title: 'Lights' }] },
+      { id: 'tpl_restaurant', name: 'Restaurant Hygiene', description: 'Food safety compliance', statuses: [{ id: 'compliant', label: 'Compliant', color: 'green' }, { id: 'minor', label: 'Minor Issue', color: 'orange' }, { id: 'violation', label: 'Violation', color: 'red' }], controlPoints: [{ id: 'cp1', title: 'Food Storage' }, { id: 'cp2', title: 'Preparation' }, { id: 'cp3', title: 'Equipment' }, { id: 'cp4', title: 'Employee Hygiene' }, { id: 'cp5', title: 'Pest Control' }] },
+      { id: 'tpl_construction', name: 'Construction Safety', description: 'Worksite safety assessment', statuses: [{ id: 'safe', label: 'Safe', color: 'green' }, { id: 'caution', label: 'Caution', color: 'orange' }, { id: 'hazard', label: 'Hazard', color: 'red' }], controlPoints: [{ id: 'cp1', title: 'PPE' }, { id: 'cp2', title: 'Fall Protection' }, { id: 'cp3', title: 'Electrical' }, { id: 'cp4', title: 'Equipment' }, { id: 'cp5', title: 'Fire Safety' }] },
+      { id: 'tpl_hotel', name: 'Hotel Room Inspection', description: 'Guest room quality assessment', statuses: [{ id: 'excellent', label: 'Excellent', color: 'green' }, { id: 'acceptable', label: 'Acceptable', color: 'orange' }, { id: 'unacceptable', label: 'Unacceptable', color: 'red' }], controlPoints: [{ id: 'cp1', title: 'Bed & Linens' }, { id: 'cp2', title: 'Bathroom' }, { id: 'cp3', title: 'Flooring' }, { id: 'cp4', title: 'Furniture' }, { id: 'cp5', title: 'Electronics' }] },
+      { id: 'tpl_equipment', name: 'Equipment Maintenance', description: 'Equipment condition log', statuses: [{ id: 'operational', label: 'Operational', color: 'green' }, { id: 'service', label: 'Service Due', color: 'orange' }, { id: 'offline', label: 'Out of Service', color: 'red' }], controlPoints: [{ id: 'cp1', title: 'Visual' }, { id: 'cp2', title: 'Lubrication' }, { id: 'cp3', title: 'Electrical' }, { id: 'cp4', title: 'Moving Parts' }, { id: 'cp5', title: 'Safety' }] }
+    ];
+
+    // ============================================
+    // AUTHENTICATION
+    // ============================================
+    async function signUp(email, password, fullName) {
+      state.authLoading = true;
+      state.authError = null;
+      render();
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } }
+      });
+
+      state.authLoading = false;
+
+      if (error) {
+        state.authError = error.message;
+        render();
+        return false;
+      }
+
+      showToast(t('checkEmail'), 'success');
+      state.currentView = 'login';
+      render();
+      return true;
+    }
+
+    async function signIn(email, password) {
+      state.authLoading = true;
+      state.authError = null;
+      render();
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      state.authLoading = false;
+
+      if (error) {
+        state.authError = error.message;
+        render();
+        return false;
+      }
+
+      await loadUserData();
+      return true;
+    }
+
+    async function signInWithGoogle() {
+      state.authLoading = true;
+      render();
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      });
+    }
+
+    async function signInWithApple() {
+      state.authLoading = true;
+      render();
+      await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: { redirectTo: window.location.origin }
+      });
+    }
+
+    async function signOut() {
+      await supabase.auth.signOut();
+      state.user = null;
+      state.session = null;
+      state.profile = null;
+      state.subscription = null;
+      state.reports = [];
+      state.currentView = 'login';
+      render();
+    }
+
+    async function resetPassword(email) {
+      state.authLoading = true;
+      state.authError = null;
+      render();
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}?reset=true`
+      });
+
+      state.authLoading = false;
+
+      if (error) {
+        state.authError = error.message;
+        render();
+        return false;
+      }
+
+      showToast(t('checkEmail'), 'success');
+      state.currentView = 'login';
+      render();
+      return true;
+    }
+
+    // ============================================
+    // SUBSCRIPTION
+    // ============================================
+    async function loadSubscription() {
+      if (!state.session) return;
+
+      try {
+        const response = await fetch(`${CONFIG.API_URL}/api/subscription`, {
+          headers: { 'Authorization': `Bearer ${state.session.access_token}` }
+        });
+
+        if (response.ok) {
+          state.subscription = await response.json();
+        } else {
+          state.subscription = { status: 'none', hasAccess: false, needsSubscription: true };
+        }
+      } catch (err) {
+        console.error('Failed to load subscription:', err);
+        state.subscription = { status: 'none', hasAccess: false, needsSubscription: true };
+      }
+    }
+
+    async function startCheckout() {
+      if (!state.session) return;
+
+      try {
+        const response = await fetch(`${CONFIG.API_URL}/api/create-checkout-session`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${state.session.access_token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const { url, error } = await response.json();
+        if (error) {
+          showToast(error, 'error');
+          return;
+        }
+
+        window.location.href = url;
+      } catch (err) {
+        showToast('Failed to start checkout', 'error');
+      }
+    }
+
+    async function openBillingPortal() {
+      if (!state.session) return;
+
+      try {
+        const response = await fetch(`${CONFIG.API_URL}/api/create-portal-session`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${state.session.access_token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const { url, error } = await response.json();
+        if (error) {
+          showToast(error, 'error');
+          return;
+        }
+
+        window.location.href = url;
+      } catch (err) {
+        showToast('Failed to open billing portal', 'error');
+      }
+    }
+
+    // ============================================
+    // DATA LOADING
+    // ============================================
+    async function loadUserData() {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        state.loading = false;
+        state.currentView = 'login';
+        render();
+        return;
+      }
+
+      state.session = session;
+      state.user = session.user;
+
+      // Load profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      state.profile = profile;
+
+      // Load company
+      const { data: company } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+
+      state.company = company || { name: '', logo_url: '', address: '', phone: '', email: '', website: '' };
+
+      // Load subscription
+      await loadSubscription();
+
+      // Load templates
+      state.templates = defaultTemplates;
+
+      // Load reports
+      const { data: reports } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      state.reports = reports || [];
+
+      state.loading = false;
+
+      // Determine initial view
+      if (!state.subscription?.hasAccess) {
+        state.currentView = 'subscribe';
+      } else {
+        state.currentView = 'reports';
+      }
+
+      render();
+    }
+
+    // ============================================
+    // REPORTS CRUD
+    // ============================================
+    async function handleCreateReport(templateId) {
+      if (!hasActiveSubscription()) {
+        showToast('Active subscription required', 'error');
+        return;
+      }
+
+      const template = state.templates.find(t => t.id === templateId);
+      if (!template) return;
+
+      const report = {
+        id: generateId('rpt'),
+        user_id: state.user.id,
+        template_id: templateId,
+        title: `${template.name} - ${formatDate(new Date())}`,
+        client_name: '',
+        location: '',
+        status: 'draft',
+        control_points: template.controlPoints.map(cp => ({
+          id: generateId('cp'),
+          title: cp.title,
+          statusId: null,
+          observations: '',
+          photos: []
+        })),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Save to Supabase
+      const { data, error } = await supabase
+        .from('reports')
+        .insert(report)
+        .select()
+        .single();
+
+      if (error) {
+        showToast('Failed to create report', 'error');
+        return;
+      }
+
+      state.reports.unshift(data);
+      state.currentReport = data;
+      state.currentView = 'report-editor';
+      render();
+    }
+
+    async function handleSaveReport() {
+      if (!state.currentReport || state.saving) return;
+
+      state.saving = true;
+      render();
+
+      state.currentReport.updated_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('reports')
+        .update(state.currentReport)
+        .eq('id', state.currentReport.id);
+
+      state.saving = false;
+
+      if (error) {
+        showToast('Failed to save report', 'error');
+        render();
+        return;
+      }
+
+      const idx = state.reports.findIndex(r => r.id === state.currentReport.id);
+      if (idx >= 0) state.reports[idx] = state.currentReport;
+
+      render();
+      showToast(t('reportSaved'), 'success');
+    }
+
+    async function handleCompleteReport() {
+      if (!state.currentReport || state.completing) return;
+
+      state.completing = true;
+      render();
+
+      state.currentReport.status = 'completed';
+      state.currentReport.updated_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('reports')
+        .update(state.currentReport)
+        .eq('id', state.currentReport.id);
+
+      state.completing = false;
+
+      if (error) {
+        showToast('Failed to complete report', 'error');
+        render();
+        return;
+      }
+
+      const idx = state.reports.findIndex(r => r.id === state.currentReport.id);
+      if (idx >= 0) state.reports[idx] = state.currentReport;
+
+      render();
+      showToast(t('reportCompleted'), 'success');
+    }
+
+    function handleEditReport(id) {
+      const report = state.reports.find(r => r.id === id);
+      if (report) {
+        state.currentReport = JSON.parse(JSON.stringify(report));
+        state.currentView = 'report-editor';
+        render();
+      }
+    }
+
+    async function handleDeleteReport(id) {
+      if (!confirm('Delete this report?')) return;
+
+      const { error } = await supabase
+        .from('reports')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        showToast('Failed to delete report', 'error');
+        return;
+      }
+
+      state.reports = state.reports.filter(r => r.id !== id);
+      render();
+      showToast('Report deleted', 'success');
+    }
+
+    async function handleDuplicateReport(id) {
+      if (!hasActiveSubscription()) {
+        showToast('Active subscription required', 'error');
+        return;
+      }
+
+      const original = state.reports.find(r => r.id === id);
+      if (!original) return;
+
+      const duplicate = {
+        ...JSON.parse(JSON.stringify(original)),
+        id: generateId('rpt'),
+        title: `${original.title} (Copy)`,
+        status: 'draft',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('reports')
+        .insert(duplicate)
+        .select()
+        .single();
+
+      if (error) {
+        showToast('Failed to duplicate report', 'error');
+        return;
+      }
+
+      state.reports.unshift(data);
+      render();
+      showToast('Report duplicated', 'success');
+    }
+
+    // ============================================
+    // PDF GENERATION (requires active subscription)
+    // ============================================
+    async function handleGeneratePDF() {
+      if (!hasActiveSubscription()) {
+        showToast('Active subscription required', 'error');
+        return;
+      }
+
+      if (!state.currentReport) return;
+
+      showToast(t('generatingPDF'), 'info');
+
+      try {
+        const template = state.templates.find(t => t.id === state.currentReport.template_id);
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        let yPos = margin;
+
+        // Header with company logo
+        if (state.company?.logo_url) {
+          try {
+            doc.addImage(state.company.logo_url, 'AUTO', margin, yPos - 5, 20, 20);
+            doc.setFontSize(18);
+            doc.setTextColor(26, 90, 60);
+            doc.text(state.company.name || 'RapidReport', margin + 28, yPos);
+          } catch (e) {
+            doc.setFontSize(18);
+            doc.setTextColor(26, 90, 60);
+            doc.text(state.company?.name || 'RapidReport', margin, yPos);
+          }
+        } else {
+          doc.setFontSize(18);
+          doc.setTextColor(26, 90, 60);
+          doc.text(state.company?.name || 'RapidReport', margin, yPos);
+        }
+
+        yPos += 12;
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        if (state.company?.address) { doc.text(state.company.address, margin, yPos); yPos += 4; }
+        if (state.company?.phone) { doc.text(state.company.phone, margin, yPos); yPos += 4; }
+
+        yPos += 6;
+        doc.setDrawColor(229, 231, 229);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 10;
+
+        // Title
+        doc.setFontSize(16);
+        doc.setTextColor(26, 26, 26);
+        doc.text(state.currentReport.title || 'Inspection Report', margin, yPos);
+        yPos += 8;
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        const meta = [state.currentReport.client_name, state.currentReport.location, formatDate(state.currentReport.created_at)].filter(Boolean).join(' • ');
+        doc.text(meta, margin, yPos);
+        yPos += 12;
+
+        // Control Points
+        for (const point of state.currentReport.control_points || []) {
+          if (yPos > 260) { doc.addPage(); yPos = margin; }
+
+          doc.setFontSize(11);
+          doc.setTextColor(26, 26, 26);
+          doc.text(point.title, margin, yPos);
+
+          const status = template?.statuses?.find(s => s.id === point.statusId);
+          if (status) {
+            const colors = { green: [34, 134, 58], orange: [217, 132, 13], red: [203, 36, 49] };
+            const c = colors[status.color] || [100, 100, 100];
+            doc.setFontSize(8);
+            doc.setFillColor(c[0], c[1], c[2]);
+            const sw = doc.getTextWidth(status.label) + 8;
+            doc.roundedRect(pageWidth - margin - sw, yPos - 4, sw, 6, 2, 2, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.text(status.label, pageWidth - margin - sw + 4, yPos);
+          }
+
+          yPos += 6;
+
+          if (point.observations) {
+            doc.setFontSize(9);
+            doc.setTextColor(80);
+            const lines = doc.splitTextToSize(point.observations, pageWidth - margin * 2);
+            lines.forEach(line => {
+              if (yPos > 270) { doc.addPage(); yPos = margin; }
+              doc.text(line, margin, yPos);
+              yPos += 4;
+            });
+          }
+
+          yPos += 6;
+        }
+
+        // Footer
+        const totalPages = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(`${t('generatedBy')} • ${t('page')} ${i} ${t('of')} ${totalPages}`, pageWidth / 2, 290, { align: 'center' });
+        }
+
+        const filename = `${state.currentReport.title || 'Report'}_${formatDate(new Date())}.pdf`.replace(/[^a-zA-Z0-9_.-]/g, '_');
+        doc.save(filename);
+
+        showToast(t('pdfSuccess'), 'success');
+      } catch (err) {
+        console.error('PDF Error:', err);
+        showToast(t('pdfError'), 'error');
+      }
+    }
+
+    // ============================================
+    // PHOTOS
+    // ============================================
+    function openPhotoModal(cpId, replaceIdx = null) {
+      state.photoModal = { cpId, replaceIdx };
+      render();
+    }
+
+    function closePhotoModal() {
+      state.photoModal = null;
+      render();
+    }
+
+    function handlePhotoCapture(source) {
+      const { cpId, replaceIdx } = state.photoModal;
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      if (source === 'camera') input.capture = 'environment';
+
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const point = state.currentReport.control_points.find(cp => cp.id === cpId);
+        if (!point) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          if (replaceIdx !== null) {
+            point.photos[replaceIdx] = ev.target.result;
+          } else {
+            if (!point.photos) point.photos = [];
+            if (point.photos.length < 4) point.photos.push(ev.target.result);
+          }
+          state.photoModal = null;
+          render();
+        };
+        reader.readAsDataURL(file);
+      };
+
+      input.click();
+    }
+
+    function handleDirectPhotoUpload(cpId, e) {
+      const files = e.target.files;
+      if (!files.length) return;
+
+      const point = state.currentReport.control_points.find(cp => cp.id === cpId);
+      if (!point) return;
+      if (!point.photos) point.photos = [];
+
+      Array.from(files).forEach(file => {
+        if (point.photos.length >= 4) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          if (point.photos.length < 4) {
+            point.photos.push(ev.target.result);
+            render();
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function removePhoto(cpId, idx) {
+      const point = state.currentReport.control_points.find(cp => cp.id === cpId);
+      if (point) {
+        point.photos.splice(idx, 1);
+        render();
+      }
+    }
+
+    function replacePhoto(cpId, idx) {
+      if (isMobile()) {
+        openPhotoModal(cpId, idx);
+      } else {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const point = state.currentReport.control_points.find(cp => cp.id === cpId);
+          if (!point) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            point.photos[idx] = ev.target.result;
+            render();
+          };
+          reader.readAsDataURL(file);
+        };
+        input.click();
+      }
+    }
+
+    // ============================================
+    // COMPANY
+    // ============================================
+    async function handleCompanyUpdate(e) {
+      e.preventDefault();
+      const form = e.target;
+
+      const companyData = {
+        user_id: state.user.id,
+        name: form.companyName.value.trim(),
+        address: form.address.value.trim(),
+        phone: form.phone.value.trim(),
+        email: form.companyEmail.value.trim(),
+        website: form.website.value.trim(),
+        logo_url: state.company?.logo_url || ''
+      };
+
+      const { error } = await supabase
+        .from('companies')
+        .upsert(companyData, { onConflict: 'user_id' });
+
+      if (error) {
+        showToast('Failed to save company', 'error');
+        return;
+      }
+
+      state.company = companyData;
+      showToast(t('companySaved'), 'success');
+    }
+
+    function handleLogoUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.match(/image\/(png|jpeg|jpg)/i)) {
+        showToast('Please upload PNG or JPG', 'error');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        state.company.logo_url = ev.target.result;
+        render();
+        showToast('✓ Logo uploaded', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ============================================
+    // RENDER FUNCTIONS
+    // ============================================
+    function renderToast() {
+      if (!state.toast) return '';
+      return `<div class="toast ${state.toast.type}">${state.toast.message}</div>`;
+    }
+
+    function renderLoginPage() {
+      return `
+        <div class="auth-container">
+          <div class="auth-card">
+            <div class="auth-logo">${icons.logo}<span>RapidReport</span></div>
+            <h1 class="auth-title">${t('welcomeBack')}</h1>
+            <p class="auth-subtitle">${t('signInContinue')}</p>
+
+            <button class="btn btn-social" onclick="signInWithGoogle()" ${state.authLoading ? 'disabled' : ''}>
+              ${icons.google} ${t('continueWithGoogle')}
+            </button>
+            <button class="btn btn-social" onclick="signInWithApple()" ${state.authLoading ? 'disabled' : ''}>
+              ${icons.apple} ${t('continueWithApple')}
+            </button>
+
+            <div class="divider">${t('orContinueWithEmail')}</div>
+
+            <form id="loginForm">
+              <div class="form-group">
+                <label class="form-label">${t('email')}</label>
+                <input type="email" name="email" class="form-input" placeholder="you@company.com" required ${state.authLoading ? 'disabled' : ''}>
+              </div>
+              <div class="form-group">
+                <label class="form-label">${t('password')}</label>
+                <input type="password" name="password" class="form-input" placeholder="••••••••" required minlength="6" ${state.authLoading ? 'disabled' : ''}>
+              </div>
+              ${state.authError ? `<p class="form-error">${state.authError}</p>` : ''}
+              <button type="submit" class="btn btn-primary btn-full mt-2" ${state.authLoading ? 'disabled' : ''}>
+                ${state.authLoading ? '<span class="spinner"></span>' : t('signIn')}
+              </button>
+            </form>
+
+            <p class="text-center mt-2">
+              <button class="btn-link" onclick="state.currentView='forgot-password';render();">${t('forgotPassword')}</button>
+            </p>
+            <p class="text-center text-muted text-sm mt-2">
+              ${t('dontHaveAccount')} <button class="btn-link" onclick="state.currentView='signup';render();">${t('createOne')}</button>
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSignupPage() {
+      return `
+        <div class="auth-container">
+          <div class="auth-card">
+            <div class="auth-logo">${icons.logo}<span>RapidReport</span></div>
+            <h1 class="auth-title">${t('createAccount')}</h1>
+            <p class="auth-subtitle">${t('startTrial')}</p>
+
+            <button class="btn btn-social" onclick="signInWithGoogle()" ${state.authLoading ? 'disabled' : ''}>
+              ${icons.google} ${t('continueWithGoogle')}
+            </button>
+            <button class="btn btn-social" onclick="signInWithApple()" ${state.authLoading ? 'disabled' : ''}>
+              ${icons.apple} ${t('continueWithApple')}
+            </button>
+
+            <div class="divider">${t('orContinueWithEmail')}</div>
+
+            <form id="signupForm">
+              <div class="form-group">
+                <label class="form-label">${t('fullName')}</label>
+                <input type="text" name="fullName" class="form-input" placeholder="John Smith" required ${state.authLoading ? 'disabled' : ''}>
+              </div>
+              <div class="form-group">
+                <label class="form-label">${t('email')}</label>
+                <input type="email" name="email" class="form-input" placeholder="you@company.com" required ${state.authLoading ? 'disabled' : ''}>
+              </div>
+              <div class="form-group">
+                <label class="form-label">${t('password')}</label>
+                <input type="password" name="password" class="form-input" placeholder="••••••••" required minlength="6" ${state.authLoading ? 'disabled' : ''}>
+              </div>
+              ${state.authError ? `<p class="form-error">${state.authError}</p>` : ''}
+              <button type="submit" class="btn btn-primary btn-full mt-2" ${state.authLoading ? 'disabled' : ''}>
+                ${state.authLoading ? '<span class="spinner"></span>' : t('createAccount')}
+              </button>
+            </form>
+
+            <p class="text-center text-muted text-sm mt-2">
+              ${t('alreadyHaveAccount')} <button class="btn-link" onclick="state.currentView='login';render();">${t('signIn')}</button>
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderForgotPasswordPage() {
+      return `
+        <div class="auth-container">
+          <div class="auth-card">
+            <div class="auth-logo">${icons.logo}<span>RapidReport</span></div>
+            <h1 class="auth-title">${t('resetPassword')}</h1>
+            <p class="auth-subtitle">${t('checkEmail')}</p>
+
+            <form id="forgotPasswordForm">
+              <div class="form-group">
+                <label class="form-label">${t('email')}</label>
+                <input type="email" name="email" class="form-input" placeholder="you@company.com" required ${state.authLoading ? 'disabled' : ''}>
+              </div>
+              ${state.authError ? `<p class="form-error">${state.authError}</p>` : ''}
+              <button type="submit" class="btn btn-primary btn-full mt-2" ${state.authLoading ? 'disabled' : ''}>
+                ${state.authLoading ? '<span class="spinner"></span>' : t('sendResetLink')}
+              </button>
+            </form>
+
+            <p class="text-center text-muted text-sm mt-2">
+              <button class="btn-link" onclick="state.currentView='login';render();">${t('backToSignIn')}</button>
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSubscribePage() {
+      const isPastDue = state.subscription?.isPastDue;
+      const isCanceled = state.subscription?.status === 'canceled';
+
+      return `
+        <div class="subscription-page">
+          <div class="subscription-card">
+            <div class="auth-logo">${icons.logo}<span>RapidReport</span></div>
+            
+            ${isPastDue ? `
+              <div class="subscription-banner error">
+                ${icons.warning}
+                <div class="subscription-banner-content">
+                  <div class="subscription-banner-title">${t('paymentFailed')}</div>
+                  <div class="subscription-banner-text">${t('paymentFailedDesc')}</div>
+                </div>
+              </div>
+            ` : isCanceled ? `
+              <h1>${t('subscriptionEnded')}</h1>
+              <p>${t('subscriptionEndedDesc')}</p>
+            ` : `
+              <h1>${t('trialEnded')}</h1>
+              <p>${t('trialEndedDesc')}</p>
+            `}
+            
+            <div class="price-display">€19.99</div>
+            <div class="price-period">${t('perMonth')}</div>
+
+            ${!isPastDue && !isCanceled ? `<div class="trial-badge">${t('trialBadge')}</div>` : ''}
+
+            <div class="feature-list">
+              <div class="feature-item">${icons.check} ${t('feature1')}</div>
+              <div class="feature-item">${icons.check} ${t('feature2')}</div>
+              <div class="feature-item">${icons.check} ${t('feature3')}</div>
+              <div class="feature-item">${icons.check} ${t('feature4')}</div>
+              <div class="feature-item">${icons.check} ${t('feature5')}</div>
+              <div class="feature-item">${icons.check} ${t('feature6')}</div>
+            </div>
+
+            ${isPastDue ? `
+              <button class="btn btn-primary btn-full" onclick="openBillingPortal()">${t('updatePayment')}</button>
+            ` : `
+              <button class="btn btn-primary btn-full" onclick="startCheckout()">
+                ${isCanceled ? t('subscribeNow') : t('startFreeTrial')}
+              </button>
+            `}
+
+            <p class="text-center text-muted text-sm mt-2">${t('cancelAnytime')}</p>
+            <button class="btn-link mt-2" onclick="signOut()">${t('signOut')}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSubscriptionBanner() {
+      if (!state.subscription) return '';
+
+      const { isTrialing, trialEndsAt, isPastDue, cancelAtPeriodEnd, currentPeriodEnd } = state.subscription;
+
+      if (isPastDue) {
+        return `
+          <div class="subscription-banner error">
+            ${icons.warning}
+            <div class="subscription-banner-content">
+              <div class="subscription-banner-title">${t('paymentFailed')}</div>
+              <div class="subscription-banner-text">${t('paymentFailedDesc')}</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="openBillingPortal()">${t('updatePayment')}</button>
+          </div>
+        `;
+      }
+
+      if (isTrialing && trialEndsAt) {
+        const daysLeft = daysUntil(trialEndsAt);
+        if (daysLeft <= 3) {
+          return `
+            <div class="subscription-banner">
+              ${icons.warning}
+              <div class="subscription-banner-content">
+                <div class="subscription-banner-title">${t('trialEndingSoon')}</div>
+                <div class="subscription-banner-text">${daysLeft} ${t('daysLeft')}</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="openBillingPortal()">${t('manageBilling')}</button>
+            </div>
+          `;
+        }
+      }
+
+      if (cancelAtPeriodEnd && currentPeriodEnd) {
+        return `
+          <div class="subscription-banner">
+            ${icons.warning}
+            <div class="subscription-banner-content">
+              <div class="subscription-banner-title">${t('subscriptionEnding')}</div>
+              <div class="subscription-banner-text">${t('subscriptionEndingOn')} ${formatDate(currentPeriodEnd)}</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="openBillingPortal()">${t('reactivate')}</button>
+          </div>
+        `;
+      }
+
+      return '';
+    }
+
+    function renderSidebar() {
+      const userName = state.profile?.full_name || state.user?.email?.split('@')[0] || 'User';
+      return `
+        <aside class="sidebar">
+          <div class="sidebar-logo">${icons.logo}<span>RapidReport</span></div>
+          <nav class="sidebar-nav">
+            <button class="nav-item ${['reports', 'new-report', 'report-editor'].includes(state.currentView) ? 'active' : ''}" onclick="state.currentView='reports';state.currentReport=null;render();">
+              ${icons.reports}<span>${t('myReports')}</span>
+            </button>
+            <button class="nav-item ${state.currentView === 'company' ? 'active' : ''}" onclick="state.currentView='company';render();">
+              ${icons.company}<span>${t('company')}</span>
+            </button>
+            <button class="nav-item" onclick="openBillingPortal()">
+              ${icons.billing}<span>${t('billing')}</span>
+            </button>
+            <button class="nav-item ${state.currentView === 'settings' ? 'active' : ''}" onclick="state.currentView='settings';render();">
+              ${icons.settings}<span>${t('settings')}</span>
+            </button>
+          </nav>
+          <div class="sidebar-footer">
+            <div class="user-info">
+              <div class="user-avatar">${getInitials(userName)}</div>
+              <div>
+                <div class="user-name">${userName}</div>
+                <div class="user-email">${state.user?.email || ''}</div>
+              </div>
+            </div>
+            <button class="nav-item" onclick="signOut()">
+              ${icons.logout}<span>${t('signOut')}</span>
+            </button>
+          </div>
+        </aside>
+      `;
+    }
+
+    function renderReportsPage() {
+      return `
+        ${renderSidebar()}
+        <main class="main-content">
+          ${renderSubscriptionBanner()}
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">${t('myReports')}</h1>
+              <p class="page-subtitle">${state.reports.length} ${state.reports.length === 1 ? t('reports') : t('reportsPlural')}</p>
+            </div>
+            <button class="btn btn-primary" onclick="state.currentView='new-report';render();" ${hasActiveSubscription() ? '' : 'disabled'}>
+              ${icons.plus} ${t('newReport')}
+            </button>
+          </div>
+          
+          ${state.reports.length === 0 ? `
+            <div class="card">
+              <div class="empty-state">
+                ${icons.file}
+                <p>${hasActiveSubscription() ? t('noReportsYet') : t('subscribeToCreate')}</p>
+                ${hasActiveSubscription() ? `
+                  <button class="btn btn-primary" onclick="state.currentView='new-report';render();">
+                    ${icons.plus} ${t('newReport')}
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          ` : `
+            <div class="card" style="padding:0;">
+              <div class="report-list">
+                ${state.reports.map(report => `
+                  <div class="report-item" onclick="handleEditReport('${report.id}')">
+                    <div class="report-info">
+                      <div class="report-title">${report.title}</div>
+                      <div class="report-meta">${[report.client_name, report.location, formatDate(report.updated_at)].filter(Boolean).join(' • ')}</div>
+                    </div>
+                    <span class="report-status ${report.status}">${report.status === 'completed' ? t('completed') : t('draft')}</span>
+                    <div class="report-actions">
+                      <button class="btn btn-ghost" onclick="event.stopPropagation();handleDuplicateReport('${report.id}');" title="${t('duplicate')}">${icons.copy}</button>
+                      <button class="btn btn-ghost btn-danger" onclick="event.stopPropagation();handleDeleteReport('${report.id}');" title="${t('delete')}">${icons.trash}</button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `}
+        </main>
+      `;
+    }
+
+    function renderNewReportPage() {
+      return `
+        ${renderSidebar()}
+        <main class="main-content">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">${t('newReport')}</h1>
+              <p class="page-subtitle">${t('chooseTemplate')}</p>
+            </div>
+            <button class="btn btn-secondary" onclick="state.currentView='reports';render();">${t('cancel')}</button>
+          </div>
+          <div class="templates-grid">
+            ${state.templates.map(tpl => `
+              <div class="template-card" onclick="handleCreateReport('${tpl.id}')">
+                <div class="template-name">${tpl.name}</div>
+                <div class="template-description">${tpl.description}</div>
+                <div class="template-meta">${tpl.controlPoints.length} ${t('controlPoints')}</div>
+              </div>
+            `).join('')}
+          </div>
+        </main>
+      `;
+    }
+
+    function renderReportEditor() {
+      if (!state.currentReport) {
+        state.currentView = 'reports';
+        return renderReportsPage();
+      }
+
+      const template = state.templates.find(t => t.id === state.currentReport.template_id);
+      const statuses = template?.statuses || [];
+
+      return `
+        ${renderSidebar()}
+        <main class="main-content" style="padding-bottom:100px;">
+          <div class="report-editor-header">
+            <div class="report-editor-title" style="flex:1;">
+              <button class="btn btn-ghost" onclick="handleSaveReport();state.currentView='reports';state.currentReport=null;render();" style="margin-right:0.5rem;">${icons.back}</button>
+              <input type="text" value="${state.currentReport.title}" placeholder="${t('reportTitle')}" onchange="state.currentReport.title=this.value;">
+            </div>
+            <div class="report-editor-actions">
+              <button class="btn btn-ghost" onclick="handleGeneratePDF()" title="${t('generatePDF')}" ${hasActiveSubscription() ? '' : 'disabled'}>${icons.download}</button>
+              <button class="btn btn-primary" onclick="handleGeneratePDF()" ${hasActiveSubscription() ? '' : 'disabled'}>${t('generatePDF')}</button>
+            </div>
+          </div>
+
+          <div class="card mb-2">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">${t('clientName')}</label>
+                <input type="text" class="form-input" value="${state.currentReport.client_name || ''}" onchange="state.currentReport.client_name=this.value;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">${t('location')}</label>
+                <input type="text" class="form-input" value="${state.currentReport.location || ''}" onchange="state.currentReport.location=this.value;">
+              </div>
+            </div>
+          </div>
+
+          <h3 class="mb-1" style="font-size:1rem;font-weight:500;">${t('inspectionPoints')}</h3>
+
+          ${(state.currentReport.control_points || []).map((point, idx) => `
+            <div class="control-point">
+              <div class="control-point-header">
+                <input type="text" style="border:none;background:transparent;font-size:1rem;font-weight:500;width:100%;" 
+                       value="${point.title}" placeholder="${t('controlPointTitle')}" 
+                       onchange="state.currentReport.control_points[${idx}].title=this.value;">
+                <button class="btn btn-ghost btn-danger" onclick="state.currentReport.control_points.splice(${idx},1);render();" title="${t('delete')}">${icons.trash}</button>
+              </div>
+              
+              <div class="control-point-section">
+                <div class="control-point-label">${t('status')}</div>
+                <div class="status-pills">
+                  ${statuses.map(s => `
+                    <button class="status-pill ${point.statusId === s.id ? 'active' : ''}" data-color="${s.color}" 
+                            onclick="state.currentReport.control_points[${idx}].statusId='${s.id}';render();">
+                      ${s.label}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+              
+              <div class="control-point-section">
+                <div class="control-point-label">${t('observations')}</div>
+                <textarea class="form-input" placeholder="${t('observations')}..." onchange="state.currentReport.control_points[${idx}].observations=this.value;">${point.observations || ''}</textarea>
+              </div>
+              
+              <div class="control-point-section">
+                <div class="control-point-label">${t('photos')} (${(point.photos || []).length}/4)</div>
+                <div class="photos-grid">
+                  ${(point.photos || []).slice(0, 4).map((photo, pIdx) => `
+                    <div class="photo-card">
+                      <img src="${photo}" alt="Photo ${pIdx + 1}">
+                      <div class="photo-actions">
+                        <button class="photo-action-btn" onclick="event.stopPropagation();replacePhoto('${point.id}',${pIdx});" title="${t('replace')}">${icons.refresh}</button>
+                        <button class="photo-action-btn" onclick="event.stopPropagation();removePhoto('${point.id}',${pIdx});" title="${t('delete')}">${icons.trash}</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                  ${(point.photos || []).length < 4 ? `
+                    <div class="photo-add" onclick="${isMobile() ? `openPhotoModal('${point.id}')` : ''}">
+                      ${isMobile() ? `
+                        ${icons.plus}<span>${t('addPhoto')}</span>
+                      ` : `
+                        <label style="cursor:pointer;display:flex;flex-direction:column;align-items:center;">
+                          ${icons.plus}<span>${t('addPhoto')}</span>
+                          <input type="file" accept="image/*" multiple onchange="handleDirectPhotoUpload('${point.id}',event)">
+                        </label>
+                      `}
+                    </div>
+                  ` : ''}
+                </div>
+                ${(point.photos || []).length >= 4 ? `<div class="form-hint">${t('maxPhotos')}</div>` : ''}
+              </div>
+            </div>
+          `).join('')}
+
+          <button class="btn btn-secondary btn-full" onclick="state.currentReport.control_points.push({id:generateId('cp'),title:'',statusId:null,observations:'',photos:[]});render();">
+            ${icons.plus} ${t('addControlPoint')}
+          </button>
+
+          <div class="sticky-actions">
+            <span class="text-muted text-sm">${state.currentReport.status === 'completed' ? t('completed') : t('draft')} • ${t('lastSaved')} ${formatDate(state.currentReport.updated_at)}</span>
+            <div class="flex gap-1">
+              <button class="btn btn-secondary" onclick="handleSaveReport()" ${state.saving || state.completing ? 'disabled' : ''}>
+                ${state.saving ? '<span class="spinner spinner-dark"></span>' : t('saveDraft')}
+              </button>
+              <button class="btn btn-primary" onclick="handleCompleteReport()" ${state.saving || state.completing || state.currentReport.status === 'completed' ? 'disabled' : ''}>
+                ${state.completing ? '<span class="spinner"></span>' : `${icons.check} ${t('markComplete')}`}
+              </button>
+            </div>
+          </div>
+        </main>
+        ${state.photoModal ? renderPhotoModal() : ''}
+      `;
+    }
+
+    function renderPhotoModal() {
+      return `
+        <div class="modal-overlay" onclick="closePhotoModal()">
+          <div class="photo-choice-modal" onclick="event.stopPropagation()">
+            <div class="photo-choice-option" onclick="handlePhotoCapture('camera')">
+              ${icons.camera}<span>${t('takePhoto')}</span>
+            </div>
+            <div class="photo-choice-option" onclick="handlePhotoCapture('gallery')">
+              ${icons.gallery}<span>${t('chooseFromLibrary')}</span>
+            </div>
+            <button class="photo-choice-cancel" onclick="closePhotoModal()">${t('cancel')}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCompanyPage() {
+      return `
+        ${renderSidebar()}
+        <main class="main-content">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">${t('companyProfile')}</h1>
+              <p class="page-subtitle">${t('companyHint')}</p>
+            </div>
+          </div>
+          <form id="companyForm">
+            <div class="card">
+              <div class="flex gap-2 mb-2">
+                <div>
+                  <label class="logo-upload">
+                    ${state.company?.logo_url ? `<img src="${state.company.logo_url}" alt="Logo">` : `
+                      <div class="logo-upload-placeholder">
+                        ${icons.image}
+                        <div class="text-sm">${t('uploadLogo')}</div>
+                      </div>
+                    `}
+                    <input type="file" accept="image/png,image/jpeg" onchange="handleLogoUpload(event)">
+                  </label>
+                  ${state.company?.logo_url ? `
+                    <button type="button" class="btn btn-ghost btn-sm mt-1" style="width:100%;" onclick="document.querySelector('.logo-upload input').click()">
+                      ${icons.refresh} ${t('replace')}
+                    </button>
+                  ` : ''}
+                </div>
+                <div style="flex:1;">
+                  <div class="form-group">
+                    <label class="form-label">${t('companyName')}</label>
+                    <input type="text" name="companyName" class="form-input" value="${state.company?.name || ''}">
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">${t('address')}</label>
+                <input type="text" name="address" class="form-input" value="${state.company?.address || ''}">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">${t('phone')}</label>
+                  <input type="tel" name="phone" class="form-input" value="${state.company?.phone || ''}">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">${t('email')}</label>
+                  <input type="email" name="companyEmail" class="form-input" value="${state.company?.email || ''}">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">${t('website')}</label>
+                <input type="url" name="website" class="form-input" value="${state.company?.website || ''}">
+              </div>
+              <button type="submit" class="btn btn-primary mt-2">${t('saveCompany')}</button>
+            </div>
+          </form>
+        </main>
+      `;
+    }
+
+    function renderSettingsPage() {
+      const sub = state.subscription || {};
+      const statusDisplay = getSubscriptionStatusDisplay();
+      
+      return `
+        ${renderSidebar()}
+        <main class="main-content">
+          <div class="page-header">
+            <h1 class="page-title">${t('settings')}</h1>
+          </div>
+          
+          <!-- Subscription Status -->
+          <div class="settings-section">
+            <h3 class="settings-section-title">${t('subscriptionStatus')}</h3>
+            <div class="card">
+              <div class="subscription-status-display">
+                <div class="subscription-status-badge ${statusDisplay.class}">
+                  ${statusDisplay.icon} ${statusDisplay.label}
+                </div>
+                <div class="subscription-status-details">
+                  ${statusDisplay.details}
+                </div>
+              </div>
+              <div class="mt-2">
+                <button class="btn btn-secondary" onclick="openBillingPortal()">${t('manageBilling')}</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Language -->
+          <div class="settings-section">
+            <h3 class="settings-section-title">${t('language')}</h3>
+            <p class="form-hint mb-1">${t('languageHint')}</p>
+            <div class="lang-selector">
+              <button class="lang-option ${state.language === 'en' ? 'active' : ''}" onclick="state.language='en';render();">English</button>
+              <button class="lang-option ${state.language === 'fr' ? 'active' : ''}" onclick="state.language='fr';render();">Français</button>
+            </div>
+          </div>
+
+          <!-- Account -->
+          <div class="settings-section">
+            <h3 class="settings-section-title">${t('account')}</h3>
+            <div class="card">
+              <div class="form-group">
+                <label class="form-label">${t('email')}</label>
+                <input type="email" class="form-input" value="${state.user?.email || ''}" disabled>
+              </div>
+              <div class="form-group">
+                <label class="form-label">${t('fullName')}</label>
+                <input type="text" class="form-input" value="${state.profile?.full_name || ''}" disabled>
+              </div>
+            </div>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="settings-section">
+            <h3 class="settings-section-title danger-title">${t('dangerZone')}</h3>
+            <div class="card danger-card">
+              <p class="text-muted mb-1">${t('deleteAccountWarning')}</p>
+              <button class="btn btn-danger-solid" onclick="handleDeleteAccount()">
+                ${icons.trash} ${t('deleteAccount')}
+              </button>
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    function getSubscriptionStatusDisplay() {
+      const sub = state.subscription || {};
+      
+      if (sub.status === 'trialing') {
+        const daysLeft = sub.trialEndsAt ? daysUntil(sub.trialEndsAt) : 7;
+        return {
+          class: 'status-trial',
+          icon: '🎁',
+          label: t('trialActive'),
+          details: `${daysLeft} ${t('daysRemaining')} • ${t('trialEndsOn')} ${sub.trialEndsAt ? formatDate(sub.trialEndsAt) : ''}`
+        };
+      }
+      
+      if (sub.status === 'active') {
+        if (sub.cancelAtPeriodEnd) {
+          return {
+            class: 'status-warning',
+            icon: '⚠️',
+            label: t('subscriptionCanceled'),
+            details: `${t('accessUntil')} ${formatDate(sub.currentPeriodEnd)}`
+          };
+        }
+        return {
+          class: 'status-active',
+          icon: '✓',
+          label: t('subscriptionActive'),
+          details: `${t('nextBilling')}: ${formatDate(sub.currentPeriodEnd)} • €19.99/${t('month')}`
+        };
+      }
+      
+      if (sub.status === 'past_due') {
+        return {
+          class: 'status-error',
+          icon: '⚠️',
+          label: t('paymentIssue'),
+          details: t('updatePaymentRequired')
+        };
+      }
+      
+      if (sub.status === 'canceled') {
+        return {
+          class: 'status-inactive',
+          icon: '✗',
+          label: t('subscriptionInactive'),
+          details: t('subscribeToAccess')
+        };
+      }
+      
+      return {
+        class: 'status-inactive',
+        icon: '○',
+        label: t('noSubscription'),
+        details: t('startTrialToAccess')
+      };
+    }
+
+    async function handleDeleteAccount() {
+      const confirmed = confirm(t('deleteAccountConfirm'));
+      if (!confirmed) return;
+      
+      const doubleConfirm = confirm(t('deleteAccountFinal'));
+      if (!doubleConfirm) return;
+
+      try {
+        const response = await fetch(\`\${CONFIG.API_URL}/api/account\`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': \`Bearer \${state.session.access_token}\`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete account');
+        }
+
+        showToast(t('accountDeleted'), 'success');
+        
+        // Sign out and redirect
+        await supabase.auth.signOut();
+        state.user = null;
+        state.session = null;
+        state.currentView = 'login';
+        render();
+      } catch (err) {
+        showToast(t('deleteAccountError'), 'error');
+      }
+    }
+
+    function render() {
+      let content = '';
+
+      switch (state.currentView) {
+        case 'loading':
+          content = `<div class="loading-screen"><div class="spinner spinner-dark spinner-lg"></div><p class="text-muted">Loading...</p></div>`;
+          break;
+        case 'login':
+          content = renderLoginPage();
+          break;
+        case 'signup':
+          content = renderSignupPage();
+          break;
+        case 'forgot-password':
+          content = renderForgotPasswordPage();
+          break;
+        case 'subscribe':
+          content = renderSubscribePage();
+          break;
+        case 'reports':
+          content = renderReportsPage();
+          break;
+        case 'new-report':
+          content = renderNewReportPage();
+          break;
+        case 'report-editor':
+          content = renderReportEditor();
+          break;
+        case 'company':
+          content = renderCompanyPage();
+          break;
+        case 'settings':
+          content = renderSettingsPage();
+          break;
+        default:
+          content = renderLoginPage();
+      }
+
+      document.getElementById('app').innerHTML = content + renderToast();
+      attachEventListeners();
+    }
+
+    function attachEventListeners() {
+      const loginForm = document.getElementById('loginForm');
+      if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          await signIn(e.target.email.value, e.target.password.value);
+        });
+      }
+
+      const signupForm = document.getElementById('signupForm');
+      if (signupForm) {
+        signupForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          await signUp(e.target.email.value, e.target.password.value, e.target.fullName.value);
+        });
+      }
+
+      const forgotForm = document.getElementById('forgotPasswordForm');
+      if (forgotForm) {
+        forgotForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          await resetPassword(e.target.email.value);
+        });
+      }
+
+      const companyForm = document.getElementById('companyForm');
+      if (companyForm) {
+        companyForm.addEventListener('submit', handleCompanyUpdate);
+      }
+    }
+
+    // ============================================
+    // GLOBAL EXPORTS
+    // ============================================
+    window.state = state;
+    window.render = render;
+    window.signInWithGoogle = signInWithGoogle;
+    window.signInWithApple = signInWithApple;
+    window.signOut = signOut;
+    window.startCheckout = startCheckout;
+    window.openBillingPortal = openBillingPortal;
+    window.handleCreateReport = handleCreateReport;
+    window.handleEditReport = handleEditReport;
+    window.handleDeleteReport = handleDeleteReport;
+    window.handleDuplicateReport = handleDuplicateReport;
+    window.handleSaveReport = handleSaveReport;
+    window.handleCompleteReport = handleCompleteReport;
+    window.handleGeneratePDF = handleGeneratePDF;
+    window.openPhotoModal = openPhotoModal;
+    window.closePhotoModal = closePhotoModal;
+    window.handlePhotoCapture = handlePhotoCapture;
+    window.handleDirectPhotoUpload = handleDirectPhotoUpload;
+    window.removePhoto = removePhoto;
+    window.replacePhoto = replacePhoto;
+    window.handleLogoUpload = handleLogoUpload;
+    window.handleDeleteAccount = handleDeleteAccount;
+    window.generateId = generateId;
+
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        state.session = session;
+        state.user = session.user;
+        await loadUserData();
+      } else if (event === 'SIGNED_OUT') {
+        state.user = null;
+        state.session = null;
+        state.currentView = 'login';
+        render();
+      }
+    });
+
+    loadUserData();
+    
+    } // End of initializeApp function
+  </script>
+</body>
+</html>
